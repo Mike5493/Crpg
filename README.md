@@ -1,6 +1,10 @@
 This is my implementation of a classic FPS in Lua, using Love2D framework. 
 Still have to iron out some kinks with textures, but will soon course correct. 
 
+- Traditional column based strip rendering for raycasting. 
+- DDA for angle calculation accuracy.
+- Data oriented approach with the only overhead being the love2D framework, if any at all. 
+
 
 ** Demo
 https://github.com/user-attachments/assets/6d7a8f20-74e4-488f-9895-d5fd26174f42
