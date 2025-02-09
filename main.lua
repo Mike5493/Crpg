@@ -41,6 +41,7 @@ local map = {
 local textures = {
     wall = love.graphics.newImage("res/greystone.png")
 }
+textures.wall:setFilter("nearest", "nearest")
 
 function map:get(x, y)
     if x < 1 or x > self.width or y < 1 or y > self.height then
@@ -117,7 +118,13 @@ function CastRay(angle)
             distance = (side == 0) and (sideDistX - deltaDistX) or (sideDistY - deltaDistY)
         end
     end
-    return distance, side, (mapX % textures.wall:getWidth()) -- Texture X coordinate
+
+    local wallHit = (side == 0) and (player.y + distance * sinA) or (player.x + distance * cosA)
+    wallHit = wallHit - math.floor(wallHit + 0.0001) -- Get fractional part
+    local texX = math.floor(wallHit * textures.wall:getWidth())
+
+
+    return distance, side, texX -- Texture X coordinate
 end
 
 function love.draw()
@@ -139,9 +146,10 @@ function love.draw()
         local wallHeight = math.min(screenHeight / correctedDistance, screenHeight)
         local fog = math.max(0, 1 - (correctedDistance / 10))
 
-        love.graphics.setColor(fog, fog, fog)
+        local brightness = (side == 1) and 0.7 or 1.0
+        love.graphics.setColor(fog * brightness, fog * brightness, fog * brightness)
         love.graphics.draw(textures.wall,
             love.graphics.newQuad(texX, 0, 1, textures.wall:getHeight(), textures.wall:getDimensions()), i * columnWidth,
-            (screenHeight - wallHeight) / 2, 0, columnWidth, wallHeight / textures.wall:getHeight())
+            (screenHeight - wallHeight) / 2, 0, columnWidth, wallHeight / textures.wall:getHeight(), scaleX, scaleY)
     end
 end
