@@ -24,22 +24,24 @@ local player = {
 }
 
 local map = {
-    width = 8,
-    height = 8,
-    data = {
-        1, 1, 1, 1, 1, 1, 1, 1,
-        1, 0, 0, 0, 0, 0, 0, 1,
-        1, 0, 0, 0, 0, 0, 0, 1,
-        1, 0, 0, 0, 0, 0, 0, 1,
-        1, 0, 1, 0, 0, 0, 0, 1,
-        1, 0, 1, 0, 0, 0, 0, 1,
-        1, 0, 1, 0, 0, 0, 0, 1,
-        1, 1, 1, 1, 1, 1, 1, 1
-    }
+    width = 64,
+    height = 64,
+    data = {}
 }
 
+-- Generation of larger map
+for y = 1, 64 do
+    for x = 1, 64 do
+        if x == 1 or x == 64 or y == 1 or y == 64 or (x % 8 == 0 and y % 8 == 0) then
+            table.insert(map.data, 1) -- Walls
+        else
+            table.insert(map.data, 0) -- Open Space
+        end
+    end
+end
+
 local textures = {
-    wall = love.graphics.newImage("res/greystone.png")
+    wall = love.graphics.newImage("res/mossy.png")
 }
 textures.wall:setFilter("nearest", "nearest")
 
@@ -51,59 +53,29 @@ function map:get(x, y)
     return self.data[index] or 1
 end
 
-function love.update(dt)
-    local moveSpeed = player.speed * dt
-    local strafeSpeed = moveSpeed * 0.7 -- Modify as needed
-
-    if love.keyboard.isDown("w") then
-        local newX = player.x + math.cos(player.angle) * moveSpeed
-        local newY = player.y + math.sin(player.angle) * moveSpeed
-        if map:get(newX, player.y) == 0 then player.x = newX end
-        if map:get(player.x, newY) == 0 then player.y = newY end
-    end
-    if love.keyboard.isDown("s") then
-        local newX = player.x - math.cos(player.angle) * moveSpeed
-        local newY = player.y - math.sin(player.angle) * moveSpeed
-        if map:get(newX, player.y) == 0 then player.x = newX end
-        if map:get(player.x, newY) == 0 then player.y = newY end
-    end
-    if love.keyboard.isDown("a") then
-        local newX = player.x + math.sin(player.angle) * strafeSpeed
-        local newY = player.y - math.cos(player.angle) * strafeSpeed
-        if map:get(newX, player.y) == 0 then player.x = newX end
-        if map:get(player.x, newY) == 0 then player.y = newY end
-    end
-    if love.keyboard.isDown("d") then
-        local newX = player.x - math.sin(player.angle) * strafeSpeed
-        local newY = player.y + math.cos(player.angle) * strafeSpeed
-        if map:get(newX, player.y) == 0 then player.x = newX end
-        if map:get(player.x, newY) == 0 then player.y = newY end
-    end
-
-    if love.keyboard.isDown("escape") then
-        love.event.quit()
-    end
-end
-
-function love.mousemoved(x, y, dx, dy)
-    player.angle = (player.angle + dx * player.sensitivity) % (2 * math.pi)
+local function isColliding(x, y)
+    local buffer = 0.2
+    return map:get(math.floor(x - buffer), math.floor(y)) == 1
+        or map:get(math.floor(x + buffer), math.floor(y)) == 1
+        or map:get(math.floor(x), math.floor(y - buffer)) == 1
+        or map:get(math.floor(x), math.floor(y + buffer)) == 1
 end
 
 -- Raycasting optimized with DDA to better calculate distance and
 function CastRay(angle)
-    local sinA = math.sin(angle)
-    local cosA = math.cos(angle)
-    local mapX, mapY = math.floor(player.x), math.floor(player.y)
-    local deltaDistX = math.abs(1 / cosA)
-    local deltaDistY = math.abs(1 / sinA)
+    local sinA                = math.sin(angle)
+    local cosA                = math.cos(angle)
+    local mapX, mapY          = math.floor(player.x), math.floor(player.y)
+    local deltaDistX          = math.abs(1 / cosA)
+    local deltaDistY          = math.abs(1 / sinA)
 
-    local stepX = (cosA < 0) and -1 or 1
-    local stepY = (sinA < 0) and -1 or 1
-    local sideDistX = (cosA < 0) and (player.x - mapX) * deltaDistX or (mapX + 1 - player.x) * deltaDistX
-    local sideDistY = (sinA < 0) and (player.y - mapY) * deltaDistY or (mapY + 1 - player.y) * deltaDistY
+    local stepX               = (cosA < 0) and -1 or 1
+    local stepY               = (sinA < 0) and -1 or 1
+    local sideDistX           = (cosA < 0) and (player.x - mapX) * deltaDistX or (mapX + 1 - player.x) * deltaDistX
+    local sideDistY           = (sinA < 0) and (player.y - mapY) * deltaDistY or (mapY + 1 - player.y) * deltaDistY
 
     local hit, side, distance = false, 0, 0
-    while not hit and distance < 16 do
+    while not hit and distance < 32 do
         if sideDistX < sideDistY then
             sideDistX = sideDistX + deltaDistX
             mapX = mapX + stepX
@@ -119,31 +91,78 @@ function CastRay(angle)
         end
     end
 
-    local wallHit = (side == 0) and (player.y + distance * sinA) or (player.x + distance * cosA)
-    wallHit = wallHit - math.floor(wallHit + 0.0001) -- Get fractional part
-    local texX = math.floor(wallHit * textures.wall:getWidth())
-
+    local wallHit
+    if side == 0 then
+        wallHit = player.y + distance * sinA
+    else
+        wallHit = player.x + distance * cosA
+    end
+    wallHit = wallHit - math.floor(wallHit) -- Get fractional part
+    local texX = math.floor(wallHit * textures.wall:getWidth() + 0.5) % textures.wall:getWidth()
+    --texX = math.max(0, math.min(textures.wall:getWidth() - 1, texX))
 
     return distance, side, texX -- Texture X coordinate
 end
 
+function love.update(dt)
+    local isRunning   = love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")
+    local moveSpeed   = (isRunning and 4 or 2) * dt -- Sprinting speed
+    local strafeSpeed = moveSpeed * 0.7             -- Modify as needed
+
+    local newX        = player.x
+    local newY        = player.y
+
+
+    if love.keyboard.isDown("w") then
+        newX = player.x + math.cos(player.angle) * moveSpeed
+        newY = player.y + math.sin(player.angle) * moveSpeed
+    end
+    if love.keyboard.isDown("s") then
+        newX = player.x - math.cos(player.angle) * moveSpeed
+        newY = player.y - math.sin(player.angle) * moveSpeed
+    end
+    if love.keyboard.isDown("a") then
+        newX = player.x + math.sin(player.angle) * strafeSpeed
+        newY = player.y - math.cos(player.angle) * strafeSpeed
+    end
+    if love.keyboard.isDown("d") then
+        newX = player.x - math.sin(player.angle) * strafeSpeed
+        newY = player.y + math.cos(player.angle) * strafeSpeed
+    end
+
+    if not isColliding(newX, player.y) then player.x = newX end
+    if not isColliding(player.x, newY) then player.y = newY end
+
+    if love.keyboard.isDown("escape") then
+        love.event.quit()
+    end
+end
+
+function love.mousemoved(x, y, dx, dy)
+    player.angle = (player.angle + dx * player.sensitivity) % (2 * math.pi)
+end
+
 function love.draw()
-    local screenWidth = love.graphics.getWidth()
+    local screenWidth  = love.graphics.getWidth()
     local screenHeight = love.graphics.getHeight()
-    local columnWidth = screenWidth / 120
+    local columnWidth  = screenWidth / 160
 
     -- Drawing the floor and ceiling(Dark gray for floor, light gray for ceiling)
+    print(love.timer.getFPS())
     love.graphics.setColor(0.2, 0.2, 0.2)
     love.graphics.rectangle("fill", 0, screenHeight / 2 - player.pitch * screenHeight, screenWidth, screenHeight / 2)
     love.graphics.setColor(0.3, 0.3, 0.3)
     love.graphics.rectangle("fill", 0, 0 - player.pitch * screenHeight, screenWidth, screenHeight / 2)
 
-    for i = 0, 119 do
-        local rayAngle = player.angle - (player.fov / 2) + ((i / 119) * player.fov)
+    for i = 0, 159 do
+        local rayAngle = player.angle - (player.fov / 2) + ((i / 159) * player.fov)
         local distance, side, texX = CastRay(rayAngle)
 
         local correctedDistance = distance * math.cos(rayAngle - player.angle) -- Fish eye fix
-        local wallHeight = math.min(screenHeight / correctedDistance, screenHeight)
+        correctedDistance = math.max(0.5, correctedDistance)
+        local projectionPlane = (screenWidth / 2) / math.tan(player.fov / 2)
+        local wallHeight = (projectionPlane / (correctedDistance + 0.1))
+        wallHeight = math.min(screenHeight, wallHeight)
         local fog = math.max(0, 1 - (correctedDistance / 10))
 
         local brightness = (side == 1) and 0.7 or 1.0
