@@ -24,24 +24,29 @@ local player = {
 }
 
 local map = {
-    width = 64,
-    height = 64,
-    data = {}
+    width = 16,
+    height = 16,
+    data = {
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+        1,0,1,1,1,1,0,1,1,1,1,1,1,1,0,1,
+        1,0,1,0,0,1,0,0,0,0,0,0,0,1,0,1,
+        1,0,1,0,0,1,1,1,1,1,1,1,0,1,0,1,
+        1,0,1,0,0,0,0,0,0,0,0,1,0,1,0,1,
+        1,0,1,1,1,1,1,1,1,1,0,1,0,1,0,1,
+        1,0,0,0,0,0,0,0,0,1,0,1,0,1,0,1,
+        1,1,1,1,1,1,1,1,0,1,0,1,0,1,0,1,
+        1,0,0,0,0,0,0,0,0,1,0,1,0,1,0,1,
+        1,0,1,1,1,1,1,1,1,1,0,1,0,1,0,1,
+        1,0,1,0,0,0,0,0,0,0,0,1,0,1,0,1,
+        1,0,1,0,1,1,1,1,1,1,1,1,0,1,0,1,
+        1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+    }
 }
 
--- Generation of larger map
-for y = 1, 64 do
-    for x = 1, 64 do
-        if x == 1 or x == 64 or y == 1 or y == 64 or (x % 8 == 0 and y % 8 == 0) then
-            table.insert(map.data, 1) -- Walls
-        else
-            table.insert(map.data, 0) -- Open Space
-        end
-    end
-end
-
 local textures = {
-    wall = love.graphics.newImage("res/mossy.png")
+    wall = love.graphics.newImage("res/greystone.png")
 }
 textures.wall:setFilter("nearest", "nearest")
 
@@ -75,7 +80,7 @@ function CastRay(angle)
     local sideDistY           = (sinA < 0) and (player.y - mapY) * deltaDistY or (mapY + 1 - player.y) * deltaDistY
 
     local hit, side, distance = false, 0, 0
-    while not hit and distance < 32 do
+    while not hit and distance < 16 do
         if sideDistX < sideDistY then
             sideDistX = sideDistX + deltaDistX
             mapX = mapX + stepX
@@ -145,7 +150,7 @@ end
 function love.draw()
     local screenWidth  = love.graphics.getWidth()
     local screenHeight = love.graphics.getHeight()
-    local columnWidth  = screenWidth / 160
+    local columnWidth  = screenWidth / 120
 
     -- Drawing the floor and ceiling(Dark gray for floor, light gray for ceiling)
     print(love.timer.getFPS())
@@ -154,8 +159,8 @@ function love.draw()
     love.graphics.setColor(0.3, 0.3, 0.3)
     love.graphics.rectangle("fill", 0, 0 - player.pitch * screenHeight, screenWidth, screenHeight / 2)
 
-    for i = 0, 159 do
-        local rayAngle = player.angle - (player.fov / 2) + ((i / 159) * player.fov)
+    for i = 0, 119 do
+        local rayAngle = player.angle - (player.fov / 2) + ((i / 119) * player.fov)
         local distance, side, texX = CastRay(rayAngle)
 
         local correctedDistance = distance * math.cos(rayAngle - player.angle) -- Fish eye fix
