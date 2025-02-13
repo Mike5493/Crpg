@@ -13,6 +13,7 @@
 love.graphics.setDefaultFilter("nearest", "nearest")
 love.mouse.setRelativeMode(true)
 
+
 local player = {
     x = 4,
     y = 4,
@@ -164,10 +165,8 @@ function love.draw()
         local distance, side, texX = CastRay(rayAngle)
 
         local correctedDistance = distance * math.cos(rayAngle - player.angle) -- Fish eye fix
-        correctedDistance = math.max(0.5, correctedDistance)
         local projectionPlane = (screenWidth / 2) / math.tan(player.fov / 2)
         local wallHeight = (projectionPlane / (correctedDistance + 0.1))
-        wallHeight = math.min(screenHeight, wallHeight)
         local fog = math.max(0, 1 - (correctedDistance / 10))
 
         local brightness = (side == 1) and 0.7 or 1.0
