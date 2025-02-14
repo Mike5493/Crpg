@@ -25,30 +25,31 @@ local player = {
 }
 
 local enemy = {
-   x = 4, y = 4,	-- Start position
-   speed = 3,
-   direction = 1,	-- 1 = right, -1 = left
+    x = 4,
+    y = 4,         -- Start position
+    speed = 3,
+    direction = 1, -- 1 = right, -1 = left
 }
 
 local map = {
     width = 16,
     height = 16,
     data = {
-	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-	1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-	1,0,1,1,1,1,0,1,1,1,1,1,1,1,0,1,
-	1,0,1,0,0,1,0,0,0,0,0,0,0,1,0,1,
-	1,0,1,0,0,1,1,1,1,1,1,1,0,1,0,1,
-	1,0,1,0,0,0,0,0,0,0,0,1,0,1,0,1,
-	1,0,1,1,1,1,1,1,1,1,0,1,0,1,0,1,
-	1,0,0,0,0,0,0,0,0,1,0,1,0,1,0,1,
-	1,1,1,1,1,1,1,1,0,1,0,1,0,1,0,1,
-	1,0,0,0,0,0,0,0,0,1,0,1,0,1,0,1,
-	1,0,1,1,1,1,1,1,1,1,0,1,0,1,0,1,
-	1,0,1,0,0,0,0,0,0,0,0,1,0,1,0,1,
-	1,0,1,0,1,1,1,1,1,1,1,1,0,1,0,1,
-	1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+        1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1,
+        1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1,
+        1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1,
+        1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1,
+        1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1,
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1,
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1,
+        1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1,
+        1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1,
+        1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1,
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
     }
 }
 
@@ -59,7 +60,7 @@ textures.wall:setFilter("nearest", "nearest")
 
 function map:get(x, y)
     if x < 1 or x > self.width or y < 1 or y > self.height then
-	return 1
+        return 1
     end
     local index = math.floor(y) * self.width + math.floor(x) + 1
     return self.data[index] or 1
@@ -68,9 +69,9 @@ end
 local function isColliding(x, y)
     local buffer = 0.2
     return map:get(math.floor(x - buffer), math.floor(y)) == 1
-	or map:get(math.floor(x + buffer), math.floor(y)) == 1
-	or map:get(math.floor(x), math.floor(y - buffer)) == 1
-	or map:get(math.floor(x), math.floor(y + buffer)) == 1
+        or map:get(math.floor(x + buffer), math.floor(y)) == 1
+        or map:get(math.floor(x), math.floor(y - buffer)) == 1
+        or map:get(math.floor(x), math.floor(y + buffer)) == 1
 end
 
 -- Raycasting optimized with DDA to better calculate distance and
@@ -88,26 +89,26 @@ function CastRay(angle)
 
     local hit, side, distance = false, 0, 0
     while not hit and distance < 16 do
-	if sideDistX < sideDistY then
-	    sideDistX = sideDistX + deltaDistX
-	    mapX = mapX + stepX
-	    side = 0
-	else
-	    sideDistY = sideDistY + deltaDistY
-	    mapY = mapY + stepY
-	    side = 1
-	end
-	if map:get(mapX, mapY) == 1 then
-	    hit = true
-	    distance = (side == 0) and (sideDistX - deltaDistX) or (sideDistY - deltaDistY)
-	end
+        if sideDistX < sideDistY then
+            sideDistX = sideDistX + deltaDistX
+            mapX = mapX + stepX
+            side = 0
+        else
+            sideDistY = sideDistY + deltaDistY
+            mapY = mapY + stepY
+            side = 1
+        end
+        if map:get(mapX, mapY) == 1 then
+            hit = true
+            distance = (side == 0) and (sideDistX - deltaDistX) or (sideDistY - deltaDistY)
+        end
     end
 
     local wallHit
     if side == 0 then
-	wallHit = player.y + distance * sinA
+        wallHit = player.y + distance * sinA
     else
-	wallHit = player.x + distance * cosA
+        wallHit = player.x + distance * cosA
     end
     wallHit = wallHit - math.floor(wallHit) -- Get fractional part
     local texX = math.floor(wallHit * textures.wall:getWidth() + 0.5) % textures.wall:getWidth()
@@ -124,80 +125,78 @@ function love.update(dt)
     local newX        = player.x
     local newY        = player.y
 
+    UpdateEnemy(dt)
 
     if love.keyboard.isDown("w") then
-	newX = player.x + math.cos(player.angle) * moveSpeed
-	newY = player.y + math.sin(player.angle) * moveSpeed
+        newX = player.x + math.cos(player.angle) * moveSpeed
+        newY = player.y + math.sin(player.angle) * moveSpeed
     end
     if love.keyboard.isDown("s") then
-	newX = player.x - math.cos(player.angle) * moveSpeed
-	newY = player.y - math.sin(player.angle) * moveSpeed
+        newX = player.x - math.cos(player.angle) * moveSpeed
+        newY = player.y - math.sin(player.angle) * moveSpeed
     end
     if love.keyboard.isDown("a") then
-	newX = player.x + math.sin(player.angle) * strafeSpeed
-	newY = player.y - math.cos(player.angle) * strafeSpeed
+        newX = player.x + math.sin(player.angle) * strafeSpeed
+        newY = player.y - math.cos(player.angle) * strafeSpeed
     end
     if love.keyboard.isDown("d") then
-	newX = player.x - math.sin(player.angle) * strafeSpeed
-	newY = player.y + math.cos(player.angle) * strafeSpeed
+        newX = player.x - math.sin(player.angle) * strafeSpeed
+        newY = player.y + math.cos(player.angle) * strafeSpeed
     end
 
     if not isColliding(newX, player.y) then player.x = newX end
     if not isColliding(player.x, newY) then player.y = newY end
 
     if love.keyboard.isDown("escape") then
-       love.event.quit()
+        love.event.quit()
     end
-    UpdateEnemy(dt)
 end
 
 function UpdateEnemy(dt)
-   local dx 	  = player.x
-   local dy 	  = player.y
-   local distance = math.sqrt(dx * dx + dy *dy)
+    local dx       = player.x
+    local dy       = player.y
+    local distance = math.sqrt(dx * dx + dy * dy)
 
-   -- Move towards player if not too close
-   if distance > 0.1 then
-      local moveX = (dx / distance) * enemy.speed * dt
-      local moveY = (dy / distance) * enemy.speed * dt
+    -- Move towards player if not too close
+    if distance > 0.5 then
+        local moveX = (dx / distance) * enemy.speed * dt
+        local moveY = (dy / distance) * enemy.speed * dt
 
-      -- Wall collision check before moving
-      if map:get(math.floor(enemy.x + moveX), math.floor(enemy.y)) == 0 then
-	 enemy.x = enemy.x + moveX
-      end
-      if map:get(math.floor(enemy.x), math.floor(enemy.y + moveY)) == 0 then
-	 enemy.y = enemy.y + moveY
-      end
-   end
+        local nextX = enemy.x + moveX
+        local nextY = enemy.y + moveY
+
+        -- Wall collision check before moving
+        if map:get(math.floor(enemy.x + moveX), math.floor(enemy.y)) == 0 then
+            enemy.x = enemy.x + moveX
+        end
+        if map:get(math.floor(enemy.x), math.floor(enemy.y + moveY)) == 0 then
+            enemy.y = enemy.y + moveY
+        end
+    end
 end
 
 function DrawEnemy()
-   local dx = enemy.x - player.x
-   local dy = enemy.y - player.y
-   
+    local dx = enemy.x - player.x
+    local dy = enemy.y - player.y
+    local distance = math.sqrt(dx * dx + dy * dy)
 
-   -- Rotate enemy position relative to player's view
-   local enemyAngle = math.atan(dy, dx) - player.angle
-   if dx < 0 then
-      enemyAngle = enemyAngle + math.pi
-   end
+    -- Ensure enemy is within view
+    if distance > 0.2 then
+        local enemyAngle = math.atan2(dy, dx) - player.angle
 
-   -- Ensure enemy is within viewing range of player
-   if enemyAngle > -player.fov / 2 and enemyAngle < player.fov / 2 then
-      local dist = math.sqrt(dx * dx + dy * dy)
+        enemyAngle = (enemyAngle + math.pi) % (2 * math.pi) - math.pi
 
-      -- Prevents division by zero
-      if dist > 0.2 then
-	 local screenX = love.graphics.getWidth() / 2 + math.tan(enemyAngle) * 500 / dist
-	 local enemySize = math.max(20, math.min(80, 500 / dist))
+        -- Check if enemy is whin FOV
+        if math.abs(enemyAngle) < player.fov / 2 then
+            local screenX = love.graphics.getWidth() / 2 + math.tan(enemyAngle) * 500 / distance
+            local enemySize = math.max(20, math.min(100, 500 / distance))
 
-	 if screenX and enemySize then
-	     love.graphics.setColor(1, 0, 0)
-	     love.graphics.rectangle("fill", screenX - enemySize / 2, (love.graphics.getHeight() / 2) - enemySize / 2, enemySize, enemySize)
-	     love.graphics.setColor(1, 1, 1)
-	 end
-      end
-   end
+            love.graphics.setColor(1, 0, 0, 0.8)
+            love.graphics.rectangle("fill", screenX - enemySize / 2, (love.graphics.getHeight() / 2) - enemySize / 2,
+                enemySize, enemySize)
+            love.graphics.setColor(1, 1, 1)
+        end
+    end
 end
 
 function love.mousemoved(x, y, dx, dy)
@@ -211,26 +210,28 @@ function love.draw()
 
     -- Drawing the floor and ceiling(Dark gray for floor, light gray for ceiling)
     print(love.timer.getFPS())
-    love.graphics.setColor(0.2, 0.2, 0.2)
+    love.graphics.setColor(0.2, 0.2, 0.2) -- Floor(R-G-B)
     love.graphics.rectangle("fill", 0, screenHeight / 2 - player.pitch * screenHeight, screenWidth, screenHeight / 2)
-    love.graphics.setColor(0.3, 0.3, 0.3)
+    love.graphics.setColor(0.1, 0.1, 0.1) -- Ceiling(R-G-B)
     love.graphics.rectangle("fill", 0, 0 - player.pitch * screenHeight, screenWidth, screenHeight / 2)
 
 
     for i = 0, 119 do
-	local rayAngle = player.angle - (player.fov / 2) + ((i / 119) * player.fov)
-	local distance, side, texX = CastRay(rayAngle)
+        local rayAngle             = player.angle - (player.fov / 2) + ((i / 119) * player.fov)
+        local distance, side, texX = CastRay(rayAngle)
 
-	local correctedDistance = distance * math.cos(rayAngle - player.angle) -- Fish eye fix
-	local projectionPlane   = (screenWidth / 2) / math.tan(player.fov / 2)
-	local wallHeight 	= (projectionPlane / (correctedDistance + 0.1))
-	local fog 	        = math.max(0, 1 - (correctedDistance / 10))
+        local correctedDistance    = distance * math.cos(rayAngle - player.angle) -- Fish eye fix
+        local projectionPlane      = (screenWidth / 2) / math.tan(player.fov / 2)
+        local wallHeight           = (projectionPlane / (correctedDistance + 0.1))
+        local fog                  = math.max(0, 1 - (correctedDistance / 10))
 
-	local brightness = (side == 1) and 0.7 or 1.0
-	love.graphics.setColor(fog * brightness, fog * brightness, fog * brightness)
-	love.graphics.draw(textures.wall,
-	    love.graphics.newQuad(texX, 0, 1, textures.wall:getHeight(), textures.wall:getDimensions()), i * columnWidth,
-	    (screenHeight - wallHeight) / 2, 0, columnWidth, wallHeight / textures.wall:getHeight(), scaleX, scaleY)
-	DrawEnemy()
+        local brightness           = (side == 1) and 0.7 or 1.0
+        love.graphics.setColor(fog * brightness, fog * brightness, fog * brightness)
+
+        love.graphics.draw(textures.wall,
+            love.graphics.newQuad(texX, 0, 1, textures.wall:getHeight(), textures.wall:getDimensions()), i * columnWidth,
+            (screenHeight - wallHeight) / 2, 0, columnWidth, wallHeight / textures.wall:getHeight(), scaleX, scaleY)
+
+        DrawEnemy()
     end
 end
