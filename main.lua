@@ -4,7 +4,8 @@
      -- Author: Mikey
      -- Date: 2/8/2025
     =======================================================
-]] --
+]]
+--
 
 ---@diagnostic disable: undefined-global
 --- Foundation of crpg with love2D
@@ -27,7 +28,7 @@ local player = {
 local enemy = {
     x = 4,
     y = 4,         -- Start position
-    speed = 3,
+    speed = 2,
     direction = 1, -- 1 = right, -1 = left
 }
 
@@ -37,7 +38,7 @@ local map = {
     data = {
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
         1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-        1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1,
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
         1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1,
         1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1,
         1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1,
@@ -54,9 +55,23 @@ local map = {
 }
 
 local textures = {
-    wall = love.graphics.newImage("res/greystone.png")
+    wall = love.graphics.newImage("res/greystone.png"),
+    quads = {}
 }
 textures.wall:setFilter("nearest", "nearest")
+
+for i = 0, textures.wall:getWidth() - 1 do
+    textures.quads[i] = love.graphics.newQuad(i, 0, 1, textures.wall:getHeight(), textures.wall:getDimensions())
+end
+
+
+local function isColliding(x, y)
+    local buffer = 0.2
+    return map:get(math.floor(x - buffer), math.floor(y)) == 1
+        or map:get(math.floor(x + buffer), math.floor(y)) == 1
+        or map:get(math.floor(x), math.floor(y - buffer)) == 1
+        or map:get(math.floor(x), math.floor(y + buffer)) == 1
+end
 
 function map:get(x, y)
     if x < 1 or x > self.width or y < 1 or y > self.height then
@@ -66,12 +81,14 @@ function map:get(x, y)
     return self.data[index] or 1
 end
 
-local function isColliding(x, y)
-    local buffer = 0.2
-    return map:get(math.floor(x - buffer), math.floor(y)) == 1
-        or map:get(math.floor(x + buffer), math.floor(y)) == 1
-        or map:get(math.floor(x), math.floor(y - buffer)) == 1
-        or map:get(math.floor(x), math.floor(y + buffer)) == 1
+local rayResults = {}
+
+function PreComputeRays()
+    for i = 0, 119 do
+        local rayAngle             = player.angle - (player.fov / 2) + ((i / 119) * player.fov)
+        local distance, side, texX = CastRay(rayAngle)
+        rayResults[i]              = { distance, side, texX, rayAngle }
+    end
 end
 
 -- Raycasting optimized with DDA to better calculate distance and
@@ -117,6 +134,31 @@ function CastRay(angle)
     return distance, side, texX -- Texture X coordinate
 end
 
+function UpdateEnemy(dt)
+    local dx       = player.x - enemy.x
+    local dy       = player.y - enemy.y
+    local distance = math.sqrt(dx * dx + dy * dy)
+
+    -- Move towards player if not too close
+    if distance > 0.5 then
+        local approachSpeed = math.min(enemy.speed, distance * 1.5) -- Slows down near player
+        local moveX         = (dx / distance) * approachSpeed * dt
+        local moveY         = (dy / distance) * approachSpeed * dt
+
+        if math.abs(moveX) > 0.01 or math.abs(moveY) > 0.01 then
+            enemy.x = enemy.x + moveX
+            enemy.y = enemy.y + moveY
+        end
+
+        -- Wall collision check before moving
+        if not isColliding(enemy.x + moveX * 1.1, enemy.y) then
+            enemy.x = enemy.x + moveX
+        elseif not isColliding(enemy.x, enemy.y + moveY) then
+            enemy.y = enemy.y + moveY
+        end
+    end
+end
+
 function love.update(dt)
     local isRunning   = love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")
     local moveSpeed   = (isRunning and 4 or 2) * dt -- Sprinting speed
@@ -150,29 +192,8 @@ function love.update(dt)
     if love.keyboard.isDown("escape") then
         love.event.quit()
     end
-end
 
-function UpdateEnemy(dt)
-    local dx       = player.x
-    local dy       = player.y
-    local distance = math.sqrt(dx * dx + dy * dy)
-
-    -- Move towards player if not too close
-    if distance > 0.5 then
-        local moveX = (dx / distance) * enemy.speed * dt
-        local moveY = (dy / distance) * enemy.speed * dt
-
-        local nextX = enemy.x + moveX
-        local nextY = enemy.y + moveY
-
-        -- Wall collision check before moving
-        if map:get(math.floor(enemy.x + moveX), math.floor(enemy.y)) == 0 then
-            enemy.x = enemy.x + moveX
-        end
-        if map:get(math.floor(enemy.x), math.floor(enemy.y + moveY)) == 0 then
-            enemy.y = enemy.y + moveY
-        end
-    end
+    PreComputeRays()
 end
 
 function DrawEnemy()
@@ -199,10 +220,6 @@ function DrawEnemy()
     end
 end
 
-function love.mousemoved(x, y, dx, dy)
-    player.angle = (player.angle + dx * player.sensitivity) % (2 * math.pi)
-end
-
 function love.draw()
     local screenWidth  = love.graphics.getWidth()
     local screenHeight = love.graphics.getHeight()
@@ -217,21 +234,29 @@ function love.draw()
 
 
     for i = 0, 119 do
-        local rayAngle             = player.angle - (player.fov / 2) + ((i / 119) * player.fov)
-        local distance, side, texX = CastRay(rayAngle)
+        local rayData = rayResults[i]
+        if rayData then
+            local distance, side, texX, rayAngle = unpack(rayData)
 
-        local correctedDistance    = distance * math.cos(rayAngle - player.angle) -- Fish eye fix
-        local projectionPlane      = (screenWidth / 2) / math.tan(player.fov / 2)
-        local wallHeight           = (projectionPlane / (correctedDistance + 0.1))
-        local fog                  = math.max(0, 1 - (correctedDistance / 10))
+            local correctedDistance              = distance *
+                math.cos(i * (player.fov / 120) - player.fov / 2) -- Fish eye fix
+            local projectionPlane                = (screenWidth / 2) / math.tan(player.fov / 2)
+            local wallHeight                     = (projectionPlane / (correctedDistance + 0.1))
 
-        local brightness           = (side == 1) and 0.7 or 1.0
-        love.graphics.setColor(fog * brightness, fog * brightness, fog * brightness)
+            local fog                            = math.max(0, 1 - (correctedDistance / 10))
+            local brightness                     = (side == 1) and 0.7 or 1.0
+            love.graphics.setColor(fog * brightness, fog * brightness, fog * brightness)
 
-        love.graphics.draw(textures.wall,
-            love.graphics.newQuad(texX, 0, 1, textures.wall:getHeight(), textures.wall:getDimensions()), i * columnWidth,
-            (screenHeight - wallHeight) / 2, 0, columnWidth, wallHeight / textures.wall:getHeight(), scaleX, scaleY)
+            local quad = textures.quads[texX] or textures.quads[0]
 
-        DrawEnemy()
+            love.graphics.draw(textures.wall, quad, i * columnWidth,
+                (screenHeight - wallHeight) / 2, 0, columnWidth, wallHeight / textures.wall:getHeight())
+        end
     end
+
+    DrawEnemy()
+end
+
+function love.mousemoved(_, _, dx, _)
+    player.angle = (player.angle + dx * player.sensitivity) % (2 * math.pi)
 end
