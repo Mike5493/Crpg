@@ -5,14 +5,10 @@ Still have to iron out some kinks with textures, but will soon course correct.
 - DDA for angle calculation accuracy.
 - Data oriented approach with the only overhead being the love2D framework, if any at all. 
 
-
-** Demo
-https://github.com/user-attachments/assets/6d7a8f20-74e4-488f-9895-d5fd26174f42
-
-** Screenshots
-![Screenshot 2025-02-08 121721](https://github.com/user-attachments/assets/37cb8143-a7d1-46ec-98b4-24a2c63ec64f)
-![Screenshot 2025-02-08 122524](https://github.com/user-attachments/assets/8b9c4e28-0669-4281-ac2e-38f121ac0203)
-![Screenshot 2025-02-08 122501](https://github.com/user-attachments/assets/b23d79de-4933-421d-80f5-84067dcb301f)
+Demo:
 
 
+https://github.com/user-attachments/assets/101fd54a-e3f7-4d4d-913a-0bb2b003d7f8
 
+ScreenShots:
+![Screenshot 2025-02-17 110033](https://github.com/user-attachments/assets/95d40cf0-997d-4d9f-8376-793bc076d092)
