@@ -6,11 +6,6 @@
     =======================================================
 ]]
 --
-
----@diagnostic disable: undefined-global
---- Foundation of crpg with love2D
---- Disable the global variable squiggles for 'love'
-
 love.graphics.setDefaultFilter("nearest", "nearest")
 love.mouse.setRelativeMode(true)
 
@@ -25,11 +20,12 @@ local player = {
     sensitivity = 0.002,
 }
 
-local enemy = {
-    x = 4,
-    y = 4,         -- Start position
-    speed = 2,
-    direction = 1, -- 1 = right, -1 = left
+local enemies = {
+    { x = 15, y = 9,  speed = 1.5, direction = 1, color = { 1, 0, 0 } }, -- Red
+    { x = 3,  y = 12, speed = 1.3, direction = 1, color = { 0, 1, 0 } }, -- Green
+    { x = 8,  y = 6,  speed = 1.7, direction = 1, color = { 0, 0, 1 } }, -- Blue
+    { x = 12, y = 3,  speed = 1.2, direction = 1, color = { 1, 1, 0 } }, -- Yellow
+    { x = 2,  y = 2,  speed = 1.4, direction = 1, color = { 1, 0, 1 } }, -- Purple
 }
 
 local map = {
@@ -38,7 +34,7 @@ local map = {
     data = {
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
         1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+        1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1,
         1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1,
         1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1,
         1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1,
@@ -55,7 +51,7 @@ local map = {
 }
 
 local textures = {
-    wall = love.graphics.newImage("res/greystone.png"),
+    wall = love.graphics.newImage("res/mossy.png"),
     quads = {}
 }
 textures.wall:setFilter("nearest", "nearest")
@@ -65,12 +61,25 @@ for i = 0, textures.wall:getWidth() - 1 do
 end
 
 
-local function isColliding(x, y)
+function IsColliding(x, y)
     local buffer = 0.2
-    return map:get(math.floor(x - buffer), math.floor(y)) == 1
-        or map:get(math.floor(x + buffer), math.floor(y)) == 1
-        or map:get(math.floor(x), math.floor(y - buffer)) == 1
-        or map:get(math.floor(x), math.floor(y + buffer)) == 1
+    local tileX = math.floor(x)
+    local tileY = math.floor(y)
+
+    if tileX < 1 or tileX > map.width or tileY < 1 or tileY > map.height then
+        return true
+    end
+
+    return map.data[tileY * map.width + tileX + 1] == 1 or
+        map.data[tileY * map.width + math.floor(x - buffer) + 1] == 1 or
+        map.data[tileY * map.width + math.floor(x + buffer) + 1] == 1 or
+        map.data[math.floor(y - buffer) * map.width + tileX + 1] == 1 or
+        map.data[math.floor(y + buffer) * map.width + tileX + 1] == 1
+end
+
+function IsPlayerColliding(x, y)
+    local buffer = 0.3
+    return math.abs(x - player.x) < buffer and math.abs(y - player.y) < buffer
 end
 
 function map:get(x, y)
@@ -134,40 +143,69 @@ function CastRay(angle)
     return distance, side, texX -- Texture X coordinate
 end
 
-function UpdateEnemy(dt)
-    local dx       = player.x - enemy.x
-    local dy       = player.y - enemy.y
-    local distance = math.sqrt(dx * dx + dy * dy)
+function UpdateEnemies(dt)
+    for _, enemy in ipairs(enemies) do
+        local dx       = player.x - enemy.x
+        local dy       = player.y - enemy.y
+        local distance = math.sqrt(dx ^ 2 + dy ^ 2)
 
-    -- Move towards player if not too close
-    if distance > 0.5 then
-        local approachSpeed = math.min(enemy.speed, distance * 1.5) -- Slows down near player
-        local moveX         = (dx / distance) * approachSpeed * dt
-        local moveY         = (dy / distance) * approachSpeed * dt
-
-        if math.abs(moveX) > 0.01 or math.abs(moveY) > 0.01 then
-            enemy.x = enemy.x + moveX
-            enemy.y = enemy.y + moveY
+        if IsPlayerColliding(enemy.x, enemy.y) then
+            print("ENEMY COLLIDED WITH PLAYER")
+            return
         end
 
-        -- Wall collision check before moving
-        if not isColliding(enemy.x + moveX * 1.1, enemy.y) then
-            enemy.x = enemy.x + moveX
-        elseif not isColliding(enemy.x, enemy.y + moveY) then
-            enemy.y = enemy.y + moveY
+        -- Move towards player if not too close
+        if distance > 0.3 then
+            local approachSpeed = math.min(enemy.speed, distance * 1.5) -- Slows down near player
+            local moveX         = (dx / distance) * approachSpeed * dt
+            local moveY         = (dy / distance) * approachSpeed * dt
+
+            local futureX       = enemy.x + moveX
+            local futureY       = enemy.y + moveY
+
+            local canMoveX      = not IsColliding(futureX, enemy.y) and not IsPlayerColliding(futureX, enemy.y)
+            local canMoveY      = not IsColliding(enemy.x, futureY) and not IsPlayerColliding(enemy.x, futureY)
+
+            if canMoveX then
+                enemy.x = futureX
+            end
+            if canMoveY then
+                enemy.y = futureY
+            end
+
+            if not canMoveX and not canMoveY then
+                print("ENEMY STUCK: TRYING TO SLIDE")
+
+                if math.abs(dx) > math.abs(dy) then
+                    if not IsColliding(enemy.x, enemy.y + 0.3) then
+                        enemy.y = enemy.y + 0.3
+                    elseif not IsColliding(enemy.x, enemy.y - 0.3) then
+                        enemy.y = enemy.y - 0.3
+                    end
+                else
+                    if not IsColliding(enemy.x + 0.3, enemy.y) then
+                        enemy.x = enemy.x + 0.3
+                    elseif not IsColliding(enemy.x - 0.3, enemy.y) then
+                        enemy.x = enemy.x - 0.3
+                    end
+                end
+            end
         end
     end
 end
 
 function love.update(dt)
+    PreComputeRays()
+    UpdateEnemies(dt)
+
     local isRunning   = love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")
     local moveSpeed   = (isRunning and 4 or 2) * dt -- Sprinting speed
     local strafeSpeed = moveSpeed * 0.7             -- Modify as needed
+    local rotSpeed    = 1.6 * dt
 
     local newX        = player.x
     local newY        = player.y
 
-    UpdateEnemy(dt)
 
     if love.keyboard.isDown("w") then
         newX = player.x + math.cos(player.angle) * moveSpeed
@@ -186,36 +224,59 @@ function love.update(dt)
         newY = player.y + math.cos(player.angle) * strafeSpeed
     end
 
-    if not isColliding(newX, player.y) then player.x = newX end
-    if not isColliding(player.x, newY) then player.y = newY end
+    -- Rotation with left and right arrow keys
+    if love.keyboard.isDown("left") then
+        player.angle = (player.angle - rotSpeed) % (2 * math.pi)
+    end
+    if love.keyboard.isDown("right") then
+        player.angle = (player.angle + rotSpeed) % (2 * math.pi)
+    end
+
+    if not IsColliding(newX, player.y) then player.x = newX end
+    if not IsColliding(player.x, newY) then player.y = newY end
 
     if love.keyboard.isDown("escape") then
         love.event.quit()
     end
-
-    PreComputeRays()
 end
 
-function DrawEnemy()
-    local dx = enemy.x - player.x
-    local dy = enemy.y - player.y
-    local distance = math.sqrt(dx * dx + dy * dy)
+function DrawEnemies()
+    for _, enemy in ipairs(enemies) do
+        local dx = enemy.x - player.x
+        local dy = enemy.y - player.y
+        local distance = math.sqrt(dx * dx + dy * dy)
 
-    -- Ensure enemy is within view
-    if distance > 0.2 then
-        local enemyAngle = math.atan2(dy, dx) - player.angle
+        -- Ensure enemy is within view
+        if distance > 0.2 then
+            local enemyAngle = math.atan2(dy, dx) - player.angle
+            enemyAngle = (enemyAngle + math.pi) % (2 * math.pi) - math.pi
 
-        enemyAngle = (enemyAngle + math.pi) % (2 * math.pi) - math.pi
+            local stepX = dx / distance * 0.1
+            local stepY = dy / distance * 0.1
+            local checkX = player.x
+            local checkY = player.y
+            local isBlocked = false
 
-        -- Check if enemy is whin FOV
-        if math.abs(enemyAngle) < player.fov / 2 then
-            local screenX = love.graphics.getWidth() / 2 + math.tan(enemyAngle) * 500 / distance
-            local enemySize = math.max(20, math.min(100, 500 / distance))
+            for i = 1, math.floor(distance / 0.1) do
+                checkX = checkX + stepX
+                checkY = checkY + stepY
+                if IsColliding(checkX, checkY) then
+                    isBlocked = true
+                    break
+                end
+            end
 
-            love.graphics.setColor(1, 0, 0, 0.8)
-            love.graphics.rectangle("fill", screenX - enemySize / 2, (love.graphics.getHeight() / 2) - enemySize / 2,
-                enemySize, enemySize)
-            love.graphics.setColor(1, 1, 1)
+            -- Check if enemy is whin FOV
+            if not isBlocked and math.abs(enemyAngle) < player.fov / 2 then
+                local screenX = love.graphics.getWidth() / 2 + math.tan(enemyAngle) * 500 / distance
+                local enemySize = math.max(20, math.min(100, 500 / distance))
+
+                love.graphics.setColor(enemy.color[1], enemy.color[2],
+                    enemy.color[3], 1)
+                love.graphics.rectangle("fill", screenX - enemySize / 2, (love.graphics.getHeight() / 2) - enemySize / 2,
+                    enemySize, enemySize)
+                love.graphics.setColor(1, 1, 1)
+            end
         end
     end
 end
@@ -253,8 +314,7 @@ function love.draw()
                 (screenHeight - wallHeight) / 2, 0, columnWidth, wallHeight / textures.wall:getHeight())
         end
     end
-
-    DrawEnemy()
+    DrawEnemies()
 end
 
 function love.mousemoved(_, _, dx, _)
